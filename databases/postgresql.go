@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	utils "github.com/Art0r/psychic-invention/utils"
 	_ "github.com/lib/pq"
 )
 
@@ -27,7 +28,19 @@ func (db *Databases) InitPsqlClient() *sql.DB {
 	return postgres
 }
 
-func (db *Databases) SetPsqlEnvVars() (string, string, string, string, string){
+func (db *Databases) CreateTables() error {
+
+	query := utils.GetQueryAsString("init")
+
+	_, err := db.PsqlClient.Exec(query)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Databases) SetPsqlEnvVars() (string, string, string, string, string) {
 	var password string
 	var server string
 	var username string
@@ -60,7 +73,7 @@ func (db *Databases) SetPsqlEnvVars() (string, string, string, string, string){
 		}
 		return os.Getenv("DB_NAME")
 	}()
-	
+
 	sslMode := "disable"
 
 	return username, password, dbName, server, sslMode

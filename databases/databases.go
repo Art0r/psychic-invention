@@ -2,8 +2,10 @@ package databases
 
 import (
 	"database/sql"
+	"log"
 	"os"
 
+	"github.com/Art0r/psychic-invention/models"
 	"github.com/go-redis/redis"
 )
 
@@ -30,4 +32,14 @@ func (db *Databases) Init() {
 
 	db.RedisClient = db.InitRedisClient()
 	db.PsqlClient = db.InitPsqlClient()
+
+	if err := db.CreateTables(); err != nil {
+		log.Fatal("Erro ao fazer setup do banco de dados: ", err)
+	}
+
+	u1 := models.User{Name: "Art", Email: "art@art.com"}
+	u2 := models.User{Name: "Art0r", Email: "art0r@art0r.com"}
+	
+	u1.Create(db.PsqlClient)
+	u2.Create(db.PsqlClient)
 }
