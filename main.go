@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/Art0r/psychic-invention/databases"
+	"github.com/Art0r/psychic-invention/models"
 )
 
 /*
@@ -35,4 +37,25 @@ func main() {
 	case 2:
 		log.Print("Running on production")
 	}
+
+	user, _ := models.GetUserById(dbs.PsqlClient, "1")
+
+	fmt.Println(user)
+	fmt.Println("-------------------------")
+
+	users, _ := models.GetAllUsers(dbs.PsqlClient)
+
+	fmt.Println(users)
+	fmt.Println("-------------------------")
+
+	models.UpdateUser(dbs.PsqlClient, "2", "asf@asf.com", "Asf")
+	user, _ = models.GetUserById(dbs.PsqlClient, "2")
+
+	fmt.Println(user)
+	fmt.Println("-------------------------")
+
+	models.DeleteUser(dbs.PsqlClient, "2")
+	users, _ = models.GetAllUsers(dbs.PsqlClient)
+
+	fmt.Println(users)
 }

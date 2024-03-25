@@ -37,9 +37,7 @@ func (db *Databases) Init() {
 		log.Fatal("Erro ao fazer setup do banco de dados: ", err)
 	}
 
-	u1 := models.User{Name: "Art", Email: "art@art.com"}
-	u2 := models.User{Name: "Art0r", Email: "art0r@art0r.com"}
-	
-	u1.Create(db.PsqlClient)
-	u2.Create(db.PsqlClient)
+	models.CreateUser(db.PsqlClient, models.User{Name: "Art0r", Email: "art0r@art0r.com"})
+	models.CreateUser(db.PsqlClient, models.User{Name: "Lucas", Email: "lucas@lucas.com"})
+	models.CreateUser(db.PsqlClient, models.User{Name: "Simone", Email: "simone@simone.com"})
 }
