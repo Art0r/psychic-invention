@@ -29,10 +29,12 @@ func (db *Databases) InitPsqlClient() *sql.DB {
 }
 
 func (db *Databases) CreateTables() error {
+	dbPsql := db.InitPsqlClient()
+	defer dbPsql.Close()
 
 	query := utils.GetQueryAsString("init")
 
-	_, err := db.PsqlClient.Exec(query)
+	_, err := dbPsql.Exec(query)
 	if err != nil {
 		return err
 	}

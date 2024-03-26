@@ -1,21 +1,17 @@
 package databases
 
 import (
-	"database/sql"
 	"log"
 	"os"
 
 	"github.com/Art0r/psychic-invention/models"
-	"github.com/go-redis/redis"
 )
 
 type Databases struct {
 	Env         rune
-	RedisClient *redis.Client
-	PsqlClient  *sql.DB
 }
 
-func (db *Databases) Init() {
+func (db *Databases) InitDatabases() {
 
 	env := os.Getenv("ENV")
 
@@ -30,14 +26,15 @@ func (db *Databases) Init() {
 		db.Env = 0
 	}
 
-	db.RedisClient = db.InitRedisClient()
-	db.PsqlClient = db.InitPsqlClient()
-
 	if err := db.CreateTables(); err != nil {
 		log.Fatal("Erro ao fazer setup do banco de dados: ", err)
 	}
+}
 
-	models.CreateUser(db.PsqlClient, models.User{Name: "Art0r", Email: "art0r@art0r.com"})
-	models.CreateUser(db.PsqlClient, models.User{Name: "Lucas", Email: "lucas@lucas.com"})
-	models.CreateUser(db.PsqlClient, models.User{Name: "Simone", Email: "simone@simone.com"})
+func (db *Databases) SeedPsql() {
+	dbPsql := db.InitPsqlClient()
+	defer dbPsql.Close()
+	models.CreateUser(dbPsql, models.User{Name: "Art0r", Email: "art0r@art0r.com"})
+	models.CreateUser(dbPsql, models.User{Name: "Lucas", Email: "lucas@lucas.com"})
+	models.CreateUser(dbPsql, models.User{Name: "Simone", Email: "simone@simone.com"})
 }
