@@ -1,8 +1,9 @@
 package models
 
 import (
-	"database/sql"
+	"reflect"
 
+	"github.com/Art0r/psychic-invention/databases"
 	utils "github.com/Art0r/psychic-invention/utils"
 )
 
@@ -12,30 +13,57 @@ type User struct {
 	Email string `db:"email"`
 }
 
-func CreateUser(db *sql.DB, user User) error {
+type UserModel struct {
+	Dbs *databases.Databases
+}
+
+func (u *UserModel) SeedUsers() {
+	dbPsql := u.Dbs.InitPsqlClient()
+	defer dbPsql.Close()
+	u.CreateUser(&User{Name: "Art0r", Email: "art0r@art0r.com"})
+	u.CreateUser(&User{Name: "Lucas", Email: "lucas@lucas.com"})
+	u.CreateUser(&User{Name: "Simone", Email: "simone@simone.com"})
+}
+
+func (u *UserModel) GetUserById(id string) (*User, error)       { return u.GetOne("id", id) }
+func (u *UserModel) GetUserByName(name string) (*User, error)   { return u.GetOne("name", name) }
+func (u *UserModel) GetUserByEmail(email string) (*User, error) { return u.GetOne("email", email) }
+
+func (u *UserModel) UpdateUserName(id, name string) error   { return u.Update("name", id, name) }
+func (u *UserModel) UpdateUserEmail(id, email string) error { return u.Update("email", id, email) }
+
+func (u *UserModel) CreateUser(user *User) error {
+	db := u.Dbs.InitPsqlClient()
+	defer db.Close()
 
 	query := utils.GetQueryAsString("user/create")
 
-	if _, err := db.Exec(query, user.Name, user.Email); err != nil {
+	stmt, err := db.Prepare(query)
+    if err != nil {
+        return err
+    }
+    defer stmt.Close()
+
+	userValues := reflect.ValueOf(user).Elem()
+	numberOfFields := userValues.NumField()
+
+	values := make([]any, numberOfFields - 1)
+
+	for i := 1; i < numberOfFields; i++ {
+		values[i - 1] = userValues.Field(i).Interface()
+	}
+
+	if err := stmt.QueryRow(values...).Scan(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func UpdateUser(db *sql.DB, id string, email string, name string) error {
-	
-	query := utils.GetQueryAsString("user/update")
+func (u *UserModel) DeleteUser(id string) error {
+	db := u.Dbs.InitPsqlClient()
+	defer db.Close()
 
-	if _, err := db.Exec(query, id, email, name); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func DeleteUser(db *sql.DB, id string) error {
-		
 	query := utils.GetQueryAsString("user/delete")
 
 	if _, err := db.Exec(query, id); err != nil {
@@ -45,24 +73,26 @@ func DeleteUser(db *sql.DB, id string) error {
 	return nil
 }
 
-func GetUserById(db *sql.DB, id string) (User, error) {
-	var user User
+func (u *UserModel) GetAllUsers() ([]User, error) {
+	db := u.Dbs.InitPsqlClient()
+	defer db.Close()
 
-	query := utils.GetQueryAsString("user/get_by_id")
-
-	row := db.QueryRow(query, id)
-	err := row.Scan(&user.ID, &user.Name, &user.Email)
-
-	return user, err
-}
-
-func GetAllUsers(db *sql.DB) ([]User, error) {
 	var users []User
 
-	query := utils.GetQueryAsString("user/get_all")
+	query := utils.GetQueryAsString("all")
 
-	rows, err := db.Query(query)
-	
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var user User
 

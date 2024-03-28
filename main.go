@@ -28,8 +28,11 @@ GRANT ALL PRIVILEGES ON DATABASE myapp TO art0r;
 func main() {
 	dbs := databases.Databases{}
 	dbs.InitDatabases()
+	userModel := models.UserModel{
+		Dbs: &dbs,
+	}
 
-	dbs.SeedPsql()
+	userModel.SeedUsers()
 
 	switch dbs.Env {
 	case 0:
@@ -40,32 +43,40 @@ func main() {
 		log.Print("Running on production")
 	}
 
-	db := dbs.InitPsqlClient()
-	user, _ := models.GetUserById(db, "1")
-
+	user, _ := userModel.GetUserById("1")
 	fmt.Println(user)
-	db.Close()
+
 	fmt.Println("-------------------------")
 
-	db = dbs.InitPsqlClient()
-	users, _ := models.GetAllUsers(db)
-
+	users, _ := userModel.GetAllUsers()
 	fmt.Println(users)
-	db.Close()
+
 	fmt.Println("-------------------------")
 
-	db = dbs.InitPsqlClient()
-	models.UpdateUser(db, "2", "asf@asf.com", "Asf")
-	user, _ = models.GetUserById(db, "2")
-
+	userModel.UpdateUserEmail("2", "asf@asf.com")
+	user, _ = userModel.GetUserById("2")
 	fmt.Println(user)
-	db.Close()
+
 	fmt.Println("-------------------------")
 
-	db = dbs.InitPsqlClient()
-	models.DeleteUser(db, "2")
-	users, _ = models.GetAllUsers(db)
+	userModel.UpdateUserName("2", "Asf")
+	user, _ = userModel.GetUserById("2")
+	fmt.Println(user)
 
+	fmt.Println("-------------------------")
+
+	userModel.DeleteUser("2")
+	users, _ = userModel.GetAllUsers()
 	fmt.Println(users)
-	db.Close()
+
+	fmt.Println("-------------------------")
+
+	user, _ = userModel.GetUserByName("Art0r")
+	fmt.Println(user)
+
+	fmt.Println("-------------------------")
+
+	user, _ = userModel.GetUserByEmail("art0r@art0r.com")
+	fmt.Println(user)
+
 }
