@@ -1,11 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"log"
-
 	"github.com/Art0r/psychic-invention/databases"
 	"github.com/Art0r/psychic-invention/models"
+	views "github.com/Art0r/psychic-invention/views"
+	"github.com/gin-gonic/gin"
 )
 
 /*
@@ -26,6 +25,11 @@ GRANT ALL PRIVILEGES ON DATABASE myapp TO art0r;
 */
 
 func main() {
+	gin.SetMode(gin.DebugMode)
+
+	r := gin.Default()
+	r.SetTrustedProxies([]string{"127.0.0.1", "localhost"})
+	
 	dbs := databases.Databases{}
 	dbs.InitDatabases()
 	userModel := models.UserModel{
@@ -33,50 +37,8 @@ func main() {
 	}
 
 	userModel.SeedUsers()
+	
+	views.SetUsersRoutes(r)
 
-	switch dbs.Env {
-	case 0:
-		log.Print("Running on development")
-	case 1:
-		log.Print("Running on homologation")
-	case 2:
-		log.Print("Running on production")
-	}
-
-	user, _ := userModel.GetUserById("1")
-	fmt.Println(user)
-
-	fmt.Println("-------------------------")
-
-	users, _ := userModel.GetAllUsers()
-	fmt.Println(users)
-
-	fmt.Println("-------------------------")
-
-	userModel.UpdateUserEmail("2", "asf@asf.com")
-	user, _ = userModel.GetUserById("2")
-	fmt.Println(user)
-
-	fmt.Println("-------------------------")
-
-	userModel.UpdateUserName("2", "Asf")
-	user, _ = userModel.GetUserById("2")
-	fmt.Println(user)
-
-	fmt.Println("-------------------------")
-
-	userModel.DeleteUser("2")
-	users, _ = userModel.GetAllUsers()
-	fmt.Println(users)
-
-	fmt.Println("-------------------------")
-
-	user, _ = userModel.GetUserByName("Art0r")
-	fmt.Println(user)
-
-	fmt.Println("-------------------------")
-
-	user, _ = userModel.GetUserByEmail("art0r@art0r.com")
-	fmt.Println(user)
-
+	r.Run(":8000")
 }
