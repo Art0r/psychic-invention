@@ -3,24 +3,47 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/Art0r/psychic-invention/models"
 	"github.com/gin-gonic/gin"
 )
 
-func Ping(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "pong",
-	})
+func GetUsers(ctx *gin.Context) {
+	userModel := ctx.MustGet("userModel").(*models.UserModel)
+
+	users, err := userModel.GetAllUsers()
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, GetUsersResponse(err.Error(), nil))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, GetUsersResponse(nil, users))
 }
 
-// user, _ := userModel.GetUserById("1")
-// fmt.Println(user)
+func GetUserById(ctx *gin.Context) {
+	userModel := ctx.MustGet("userModel").(*models.UserModel)
 
-// fmt.Println("-------------------------")
+	id, idDefined := ctx.Params.Get("id")
 
-// users, _ := userModel.GetAllUsers()
-// fmt.Println(users)
+	if !idDefined {
+		ctx.JSON(http.StatusNotFound, GetUserResponse("ID não foi definido", nil))
+		return
+	}
 
-// fmt.Println("-------------------------")
+	user, err := userModel.GetUserById(id)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, GetUserResponse(err.Error(), nil))
+		return
+	}
+
+	if user == nil {
+		ctx.JSON(http.StatusNotFound, GetUserResponse("Usuário não encontrado", nil))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, GetUserResponse(nil, user))
+}
 
 // userModel.UpdateUserEmail("2", "asf@asf.com")
 // user, _ = userModel.GetUserById("2")

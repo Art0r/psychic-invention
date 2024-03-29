@@ -25,20 +25,21 @@ GRANT ALL PRIVILEGES ON DATABASE myapp TO art0r;
 */
 
 func main() {
-	gin.SetMode(gin.DebugMode)
+	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
 	r.SetTrustedProxies([]string{"127.0.0.1", "localhost"})
 	
 	dbs := databases.Databases{}
 	dbs.InitDatabases()
+
 	userModel := models.UserModel{
 		Dbs: &dbs,
 	}
 
 	userModel.SeedUsers()
 	
-	views.SetUsersRoutes(r)
+	views.SetUsersRoutes(r, &userModel)
 
 	r.Run(":8000")
 }

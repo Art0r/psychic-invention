@@ -5,10 +5,11 @@ import (
 
 	"github.com/Art0r/psychic-invention/databases"
 	utils "github.com/Art0r/psychic-invention/utils"
+	"github.com/google/uuid"
 )
 
 type User struct {
-	ID    int    `db:"id"`
+	ID    string `db:"id"`
 	Name  string `db:"name"`
 	Email string `db:"email"`
 }
@@ -20,9 +21,9 @@ type UserModel struct {
 func (u *UserModel) SeedUsers() {
 	dbPsql := u.Dbs.InitPsqlClient()
 	defer dbPsql.Close()
-	u.CreateUser(&User{Name: "Art0r", Email: "art0r@art0r.com"})
-	u.CreateUser(&User{Name: "Lucas", Email: "lucas@lucas.com"})
-	u.CreateUser(&User{Name: "Simone", Email: "simone@simone.com"})
+	u.CreateUser(&User{ID: uuid.NewString(), Name: "Art0r", Email: "art0r@art0r.com"})
+	u.CreateUser(&User{ID: uuid.NewString(), Name: "Lucas", Email: "lucas@lucas.com"})
+	u.CreateUser(&User{ID: uuid.NewString(), Name: "Simone", Email: "simone@simone.com"})
 }
 
 func (u *UserModel) GetUserById(id string) (*User, error)       { return u.GetOne("id", id) }
@@ -39,21 +40,21 @@ func (u *UserModel) CreateUser(user *User) error {
 	query := utils.GetQueryAsString("user/create")
 
 	stmt, err := db.Prepare(query)
-    if err != nil {
-        return err
-    }
-    defer stmt.Close()
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
 
 	userValues := reflect.ValueOf(user).Elem()
 	numberOfFields := userValues.NumField()
 
-	values := make([]any, numberOfFields - 1)
+	values := make([]any, numberOfFields)
 
-	for i := 1; i < numberOfFields; i++ {
-		values[i - 1] = userValues.Field(i).Interface()
+	for i := 0; i < numberOfFields; i++ {
+		values[i] = userValues.Field(i).Interface()
 	}
 
-	if err := stmt.QueryRow(values...).Scan(); err != nil {
+	if _, err := stmt.Exec(values...); err != nil {
 		return err
 	}
 
@@ -73,11 +74,11 @@ func (u *UserModel) DeleteUser(id string) error {
 	return nil
 }
 
-func (u *UserModel) GetAllUsers() ([]User, error) {
+func (u *UserModel) GetAllUsers() ([]*User, error) {
 	db := u.Dbs.InitPsqlClient()
 	defer db.Close()
 
-	var users []User
+	var users []*User
 
 	query := utils.GetQueryAsString("all")
 
@@ -100,7 +101,7 @@ func (u *UserModel) GetAllUsers() ([]User, error) {
 			return users, err
 		}
 
-		users = append(users, user)
+		users = append(users, &user)
 	}
 
 	return users, err
