@@ -5,6 +5,7 @@ import (
 
 	"github.com/Art0r/psychic-invention/databases"
 	utils "github.com/Art0r/psychic-invention/utils"
+	"github.com/go-faker/faker/v4"
 	"github.com/google/uuid"
 )
 
@@ -21,9 +22,14 @@ type UserModel struct {
 func (u *UserModel) SeedUsers() {
 	dbPsql := u.Dbs.InitPsqlClient()
 	defer dbPsql.Close()
-	u.CreateUser(&User{ID: uuid.NewString(), Name: "Art0r", Email: "art0r@art0r.com"})
-	u.CreateUser(&User{ID: uuid.NewString(), Name: "Lucas", Email: "lucas@lucas.com"})
-	u.CreateUser(&User{ID: uuid.NewString(), Name: "Simone", Email: "simone@simone.com"})
+
+	for i := 0; i < 10; i++ {
+		id := uuid.NewString()
+		email := faker.Email()
+		name := faker.Name()
+
+		u.CreateUser(&User{ID: id, Name: name, Email: email})	
+	}
 }
 
 func (u *UserModel) GetUserById(id string) (*User, error)       { return u.GetOne("id", id) }
