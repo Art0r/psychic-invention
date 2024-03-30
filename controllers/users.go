@@ -5,6 +5,7 @@ import (
 
 	"github.com/Art0r/psychic-invention/models"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func GetUsers(ctx *gin.Context) {
@@ -43,6 +44,43 @@ func GetUserById(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, GetUserResponse(nil, user))
+}
+
+func CreateUser(ctx *gin.Context) {
+	userModel := ctx.MustGet("userModel").(*models.UserModel)
+
+	var newUser *models.User
+	var id string
+
+	for {
+		id = uuid.NewString()
+
+		user, _ := userModel.GetUserById(id)
+		if user == nil {
+			break
+		}
+	}
+
+	if err := ctx.ShouldBindJSON(&newUser); err != nil {
+		ctx.JSON(http.StatusBadRequest, GetUserResponse(err, nil))
+		return
+	}
+
+	user, _ := userModel.GetUserByEmail(newUser.Email)
+	if user != nil {
+		ctx.JSON(http.StatusConflict, GetUserResponse("Um usuário com esse email já existe", nil))
+		return
+	}
+
+	newUser.ID = id
+	err := userModel.CreateUser(newUser)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, GetUserResponse(err.Error(), nil))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, GetUserResponse(nil, newUser))
 }
 
 // userModel.UpdateUserEmail("2", "asf@asf.com")

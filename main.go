@@ -25,7 +25,7 @@ GRANT ALL PRIVILEGES ON DATABASE myapp TO art0r;
 */
 
 func main() {
-	gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.DebugMode)
 
 	r := gin.Default()
 	r.SetTrustedProxies([]string{"127.0.0.1", "localhost"})

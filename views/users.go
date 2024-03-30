@@ -2,9 +2,8 @@ package views
 
 import (
 	"github.com/Art0r/psychic-invention/controllers"
-	"github.com/gin-gonic/gin"
 	"github.com/Art0r/psychic-invention/models"
-
+	"github.com/gin-gonic/gin"
 )
 
 func SetUsersRoutes(r *gin.Engine, userModel *models.UserModel) {
@@ -15,7 +14,8 @@ func SetUsersRoutes(r *gin.Engine, userModel *models.UserModel) {
 			ctx.Next()
 		})
 
-		user.GET("/", controllers.GetUsers)
+		user.GET("", controllers.GetUsers)
 		user.GET("/:id", controllers.GetUserById)
+		user.POST("", controllers.CreateUser)
 	}
 }
