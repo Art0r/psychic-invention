@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Art0r/psychic-invention/models"
+	"github.com/Art0r/psychic-invention/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -31,10 +32,14 @@ func GetUserById(ctx *gin.Context) {
 		return
 	}
 
-	user, err := userModel.GetUserById(id)
+	if !utils.IsUUID(id) {
+		ctx.JSON(http.StatusNotFound, GetUserResponse("Usuário não encontrado", nil))
+		return
+	}
 
+	user, err := userModel.GetUserById(id)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, GetUserResponse(err.Error(), nil))
+		ctx.JSON(http.StatusNotFound, GetUserResponse("Usuário não encontrado", nil))
 		return
 	}
 
@@ -83,28 +88,93 @@ func CreateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, GetUserResponse(nil, newUser))
 }
 
-// userModel.UpdateUserEmail("2", "asf@asf.com")
-// user, _ = userModel.GetUserById("2")
-// fmt.Println(user)
+func UpdateUser(ctx *gin.Context) {
+	userModel := ctx.MustGet("userModel").(*models.UserModel)
+	var userUpdates *models.User
 
-// fmt.Println("-------------------------")
+	id, idDefined := ctx.Params.Get("id")
+	if !idDefined {
+		ctx.JSON(http.StatusNotFound, GetUserResponse("ID não foi definido", nil))
+		return
+	}
 
-// userModel.UpdateUserName("2", "Asf")
-// user, _ = userModel.GetUserById("2")
-// fmt.Println(user)
+	if err := ctx.ShouldBindJSON(&userUpdates); err != nil {
+		ctx.JSON(http.StatusBadRequest, GetUserResponse(err, nil))
+		return
+	}
 
-// fmt.Println("-------------------------")
+	userRetrieved, err := userModel.GetUserById(id)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, GetUserResponse(err, nil))
+		return
+	}
+
+	err = whichFieldUpdate(userUpdates, userRetrieved, userModel)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, GetUserResponse(err.Error(), nil))
+		return
+	}
+
+	if userRetrieved, err = userModel.GetUserById(id); err != nil {
+		ctx.JSON(http.StatusNotFound, GetUserResponse(err, nil))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, GetUserResponse(nil, userRetrieved))
+}
+
+func DeleteUser(ctx *gin.Context) {
+	userModel := ctx.MustGet("userModel").(*models.UserModel)
+
+	id, idDefined := ctx.Params.Get("id")
+
+	if !idDefined {
+		ctx.JSON(http.StatusNotFound, DeleteResponse("ID não foi definido"))
+		return
+	}
+
+	if !utils.IsUUID(id) {
+		ctx.JSON(http.StatusNotFound, DeleteResponse("Usuário não encontrado"))
+		return
+	}
+
+	user, err := userModel.GetUserById(id)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, GetUserResponse("Usuário não encontrado", nil))
+		return
+	}
+	if user == nil {
+		ctx.JSON(http.StatusNotFound, DeleteResponse("Usuário não encontrado"))
+		return
+	}
+
+	err = userModel.DeleteUser(id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, DeleteResponse(err.Error()))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, DeleteResponse(nil))
+}
+
+func whichFieldUpdate(userUpdates, userRetrieved *models.User, userModel *models.UserModel) error {
+	columns := map[string]string{}
+
+	if len(userUpdates.Email) != 0 {
+		columns["email"] = userUpdates.Email
+	}
+
+	if len(userUpdates.Name) != 0 {
+		columns["name"] = userUpdates.Name
+	}
+
+	err := userModel.UpdateUser(userRetrieved.ID, columns)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 // userModel.DeleteUser("2")
 // users, _ = userModel.GetAllUsers()
 // fmt.Println(users)
-
-// fmt.Println("-------------------------")
-
-// user, _ = userModel.GetUserByName("Art0r")
-// fmt.Println(user)
-
-// fmt.Println("-------------------------")
-
-// user, _ = userModel.GetUserByEmail("art0r@art0r.com")
-// fmt.Println(user

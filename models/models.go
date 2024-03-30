@@ -1,7 +1,9 @@
 package models
 
 import (
+	"errors"
 	"fmt"
+
 	utils "github.com/Art0r/psychic-invention/utils"
 )
 
@@ -26,11 +28,10 @@ func (u *UserModel) GetOne(sql, attr string) (*User, error) {
         return nil, err
     }
 
-
 	return &user, err
 }
 
-func (u *UserModel) Update(sql, id, attr string) error {
+func (u *UserModel) UpdateOne(sql, id, attr string) error {
 	db := u.Dbs.InitPsqlClient()
 	defer db.Close()
 
@@ -43,8 +44,18 @@ func (u *UserModel) Update(sql, id, attr string) error {
     }
     defer stmt.Close()
 
-	if err := stmt.QueryRow(id, attr).Scan(); err != nil {
+	result, err := stmt.Exec(id, attr)
+	if err != nil {
 		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("no rows were affected")
 	}
 
 	return nil

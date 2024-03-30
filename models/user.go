@@ -1,7 +1,9 @@
 package models
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/Art0r/psychic-invention/databases"
 	utils "github.com/Art0r/psychic-invention/utils"
@@ -28,16 +30,43 @@ func (u *UserModel) SeedUsers() {
 		email := faker.Email()
 		name := faker.Name()
 
-		u.CreateUser(&User{ID: id, Name: name, Email: email})	
+		u.CreateUser(&User{ID: id, Name: name, Email: email})
 	}
 }
 
-func (u *UserModel) GetUserById(id string) (*User, error)       { return u.GetOne("id", id) }
+func (u *UserModel) GetUserById(id string) (*User, error) { return u.GetOne("id", id) }
 func (u *UserModel) GetUserByName(name string) (*User, error)   { return u.GetOne("name", name) }
 func (u *UserModel) GetUserByEmail(email string) (*User, error) { return u.GetOne("email", email) }
 
-func (u *UserModel) UpdateUserName(id, name string) error   { return u.Update("name", id, name) }
-func (u *UserModel) UpdateUserEmail(id, email string) error { return u.Update("email", id, email) }
+func (u *UserModel) UpdateUser(id string, columns map[string]string) error {
+	db := u.Dbs.InitPsqlClient()
+	defer db.Close()
+
+	var fields []string
+	var values []interface{}
+	values = append(values, id)
+	i := 2
+	for index, value := range columns {
+		v := fmt.Sprintf("%s = $%d", index, i)
+		fields = append(fields, v)
+		values = append(values, value)
+		i++
+	}
+
+	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d", strings.Join(fields, ", "), 1)
+
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err := stmt.Exec(values...); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (u *UserModel) CreateUser(user *User) error {
 	db := u.Dbs.InitPsqlClient()

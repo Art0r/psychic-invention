@@ -37,7 +37,7 @@ func main() {
 		Dbs: &dbs,
 	}
 
-	userModel.SeedUsers()
+	// userModel.SeedUsers()
 	
 	views.SetUsersRoutes(r, &userModel)
 

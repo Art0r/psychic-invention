@@ -12,6 +12,13 @@ func GetUserResponse(err any, user *models.User) map[string]any {
 	}
 }
 
+func DeleteResponse(err any) map[string]any {
+	return gin.H{
+		"error": err,
+		"res":  "Usuário deletado",
+	}
+}
+
 func GetUsersResponse(err any, users []*models.User) map[string]any {
 	return gin.H{
 		"error": err,
