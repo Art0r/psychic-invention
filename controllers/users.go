@@ -9,6 +9,52 @@ import (
 	"github.com/google/uuid"
 )
 
+func whichFieldUpdate(userUpdates, userRetrieved *models.User, userModel *models.UserModel) error {
+	columns := map[string]string{}
+
+	if len(userUpdates.Email) != 0 {
+		columns["email"] = userUpdates.Email
+	}
+
+	if len(userUpdates.Name) != 0 {
+		columns["name"] = userUpdates.Name
+	}
+
+	err := userModel.UpdateUser(userRetrieved.ID, columns)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getUserVerifyId(ctx *gin.Context) (*models.User, *models.UserModel) {
+	userModel := ctx.MustGet("userModel").(*models.UserModel)
+	id, idDefined := ctx.Params.Get("id")
+
+	if !idDefined {
+		ctx.JSON(http.StatusNotFound, GetUserResponse("ID não foi definido", nil))
+		return nil, userModel
+	}
+
+	if !utils.IsUUID(id) {
+		ctx.JSON(http.StatusNotFound, GetUserResponse("Usuário não encontrado", nil))
+		return nil, userModel
+	}
+
+	user, err := userModel.GetUserById(id)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, GetUserResponse("Usuário não encontrado", nil))
+		return nil, userModel
+	}
+
+	if user == nil {
+		ctx.JSON(http.StatusNotFound, GetUserResponse("Usuário não encontrado", nil))
+		return nil, userModel
+	}
+
+	return user, userModel
+}
+
 func GetUsers(ctx *gin.Context) {
 	userModel := ctx.MustGet("userModel").(*models.UserModel)
 
@@ -23,28 +69,8 @@ func GetUsers(ctx *gin.Context) {
 }
 
 func GetUserById(ctx *gin.Context) {
-	userModel := ctx.MustGet("userModel").(*models.UserModel)
-
-	id, idDefined := ctx.Params.Get("id")
-
-	if !idDefined {
-		ctx.JSON(http.StatusNotFound, GetUserResponse("ID não foi definido", nil))
-		return
-	}
-
-	if !utils.IsUUID(id) {
-		ctx.JSON(http.StatusNotFound, GetUserResponse("Usuário não encontrado", nil))
-		return
-	}
-
-	user, err := userModel.GetUserById(id)
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, GetUserResponse("Usuário não encontrado", nil))
-		return
-	}
-
+	user, _ := getUserVerifyId(ctx)
 	if user == nil {
-		ctx.JSON(http.StatusNotFound, GetUserResponse("Usuário não encontrado", nil))
 		return
 	}
 
@@ -71,6 +97,16 @@ func CreateUser(ctx *gin.Context) {
 		return
 	}
 
+	if len(newUser.Email) == 0 || len(newUser.Name) == 0 {
+		ctx.JSON(http.StatusBadRequest, GetUserResponse("Algum campo necessário não foi preenchido", nil))
+		return	
+	}
+
+	if !utils.IsValidEmail(newUser.Email) {
+		ctx.JSON(http.StatusBadRequest, GetUserResponse("Endereço de Email Inválido", nil))
+		return	
+	}
+
 	user, _ := userModel.GetUserByEmail(newUser.Email)
 	if user != nil {
 		ctx.JSON(http.StatusConflict, GetUserResponse("Um usuário com esse email já existe", nil))
@@ -89,33 +125,23 @@ func CreateUser(ctx *gin.Context) {
 }
 
 func UpdateUser(ctx *gin.Context) {
-	userModel := ctx.MustGet("userModel").(*models.UserModel)
 	var userUpdates *models.User
 
-	id, idDefined := ctx.Params.Get("id")
-	if !idDefined {
-		ctx.JSON(http.StatusNotFound, GetUserResponse("ID não foi definido", nil))
-		return
-	}
+	userRetrieved, userModel := getUserVerifyId(ctx)
+	if userRetrieved == nil { return }
 
 	if err := ctx.ShouldBindJSON(&userUpdates); err != nil {
 		ctx.JSON(http.StatusBadRequest, GetUserResponse(err, nil))
 		return
 	}
 
-	userRetrieved, err := userModel.GetUserById(id)
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, GetUserResponse(err, nil))
-		return
-	}
-
-	err = whichFieldUpdate(userUpdates, userRetrieved, userModel)
+	err := whichFieldUpdate(userUpdates, userRetrieved, userModel)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, GetUserResponse(err.Error(), nil))
 		return
 	}
 
-	if userRetrieved, err = userModel.GetUserById(id); err != nil {
+	if userRetrieved, err = userModel.GetUserById(userRetrieved.ID); err != nil {
 		ctx.JSON(http.StatusNotFound, GetUserResponse(err, nil))
 		return
 	}
@@ -124,31 +150,12 @@ func UpdateUser(ctx *gin.Context) {
 }
 
 func DeleteUser(ctx *gin.Context) {
-	userModel := ctx.MustGet("userModel").(*models.UserModel)
-
-	id, idDefined := ctx.Params.Get("id")
-
-	if !idDefined {
-		ctx.JSON(http.StatusNotFound, DeleteResponse("ID não foi definido"))
-		return
-	}
-
-	if !utils.IsUUID(id) {
-		ctx.JSON(http.StatusNotFound, DeleteResponse("Usuário não encontrado"))
-		return
-	}
-
-	user, err := userModel.GetUserById(id)
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, GetUserResponse("Usuário não encontrado", nil))
-		return
-	}
+	user, userModel := getUserVerifyId(ctx)
 	if user == nil {
-		ctx.JSON(http.StatusNotFound, DeleteResponse("Usuário não encontrado"))
 		return
 	}
 
-	err = userModel.DeleteUser(id)
+	err := userModel.DeleteUser(user.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, DeleteResponse(err.Error()))
 		return
@@ -156,25 +163,3 @@ func DeleteUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, DeleteResponse(nil))
 }
-
-func whichFieldUpdate(userUpdates, userRetrieved *models.User, userModel *models.UserModel) error {
-	columns := map[string]string{}
-
-	if len(userUpdates.Email) != 0 {
-		columns["email"] = userUpdates.Email
-	}
-
-	if len(userUpdates.Name) != 0 {
-		columns["name"] = userUpdates.Name
-	}
-
-	err := userModel.UpdateUser(userRetrieved.ID, columns)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// userModel.DeleteUser("2")
-// users, _ = userModel.GetAllUsers()
-// fmt.Println(users)
